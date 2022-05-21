@@ -10,6 +10,8 @@
 
 <div id="root"></div>
 <script>
+    // ##########################
+
     const state = {
         time: new Date(),
         lots: [
@@ -28,30 +30,53 @@
         ]
     }
 
-    const app = document.createElement('div')
-    app.className = 'app'
+    // ##########################
 
-    const header = document.createElement('header')
-    header.className = 'header'
+    function App ({ state }) {
+        const node = document.createElement('div')
+        node.className = 'app'
 
-    app.append(header)
+        node.append(Header())
+        node.append(Clock({ time: state.time }))
+        node.append(Lots({ lots: state.lots }))
 
-    const logo = document.createElement('img')
-    logo.className = 'logo'
-    logo.src = 'logo.png'
+        return node
+    }
 
-    header.append(logo)
+    function Header () {
+        const node = document.createElement('header')
+        node.className = 'header'
 
-    const clock = document.createElement('div')
-    clock.className = 'clock'
-    clock.innerText = state.time.toLocaleTimeString()
+        node.append(Logo())
+        return node
+    }
 
-    app.append(clock)
+    function Logo () {
+        const node = document.createElement('img')
+        node.className = 'logo'
+        node.src = 'logo.png'
+        return node
+    }
 
-    const lots = document.createElement('div')
-    lots.className = 'lots'
+    function Clock ({ time }) {
+        const node = document.createElement('div')
+        node.className = 'clock'
+        node.innerText = time.toLocaleTimeString()
+        return node
+    }
 
-    state.lots.forEach((lot) => {
+    function Lots ({ lots }) {
+        const node = document.createElement('div')
+        node.className = 'lots'
+
+        lots.forEach((lot) => {
+            node.append(Lot({ lot }))
+        })
+
+        return node
+    }
+
+    function Lot ({ lot }) {
         const node = document.createElement('article')
         node.className = 'lot'
 
@@ -68,13 +93,24 @@
         description.innerText = lot.description
         node.append(description)
 
-        lots.append(node)
-    })
+        return node
+    }
 
-    app.append(lots)
+    // ##########################
 
-    const domRoot = document.getElementById('root')
-    domRoot.append(app)
+    render(
+        App({ state }),
+        document.getElementById('root')
+    )
+
+    // ##########################
+
+    function render (newDom, realDomRoot) {
+        realDomRoot.append(newDom)
+    }
+
+    // ##########################
+
 </script>
 </body>
 </html>
