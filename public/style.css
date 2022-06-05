@@ -58,6 +58,35 @@ body {
     margin-bottom: 10px;
 }
 
+.lot.favorite {
+    border-color: #ffd7cb;
+    background: #ffd7cb;
+}
+
+button {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.8rem;
+    outline: none;
+}
+
+button * {
+    vertical-align: middle;
+}
+
+button.favorite {
+    background: #fff;
+    border: 1px solid #999;
+    color: #000;
+}
+
+button.unfavorite {
+    background: #fff;
+    border: 1px solid #ff8c68;
+    color: #dc0000;
+}
+
 .lot .price {
     float: right;
     text-align: right;
@@ -70,7 +99,7 @@ body {
 }
 
 .lot p {
-    margin: 0;
+    margin: 0 0 15px 0;
 }
 
 .loading {
@@ -78,9 +107,4 @@ body {
     border-radius: 6px;
     background: #eee;
     text-align: center;
-}
-
-.lot.favorite {
-    border-color: #ffd7cb;
-    background: #ffd7cb;
 }
