@@ -79,3 +79,8 @@ body {
     background: #eee;
     text-align: center;
 }
+
+.lot.favorite {
+    border-color: #ffd7cb;
+    background: #ffd7cb;
+}
