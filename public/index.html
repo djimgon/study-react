@@ -102,6 +102,28 @@
         }
     }
 
+    function createSetTimeAction (time) {
+        return {
+            type: SET_TIME,
+            time
+        }
+    }
+
+    function createSetLotsAction (lots) {
+        return {
+            type: SET_LOTS,
+            lots
+        }
+    }
+
+    function createChangeLotPriceAction (id, price) {
+        return {
+            type: CHANGE_LOT_PRICE,
+            id,
+            price
+        }
+    }
+
     // ##########################
 
     class Store {
@@ -212,25 +234,15 @@
     // ##########################
 
     setInterval(() => {
-        store.dispatch({
-            type: SET_TIME,
-            time: new Date()
-        })
+        store.dispatch(createSetTimeAction(new Date()))
     }, 1000)
 
     api.get('/lots').then((lots) => {
-        store.dispatch({
-            type: SET_LOTS,
-            lots
-        })
+        store.dispatch(createSetLotsAction(lots))
 
         lots.forEach((lot) => {
             stream.subscribe(`price-${lot.id}`, (data) => {
-                store.dispatch({
-                    type: CHANGE_LOT_PRICE,
-                    id: data.id,
-                    price: data.price
-                })
+                store.dispatch(createChangeLotPriceAction(data.id, data.price))
             })
         })
     })
