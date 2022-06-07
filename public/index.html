@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/redux@4/dist/redux.js" crossorigin></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.js" crossorigin></script>
-    <script src="https://unpkg.com/ionicons@5/dist/ionicons/ionicons.esm.js" type="module" crossorigin></script>
 </head>
 <body>
 
@@ -139,44 +138,7 @@
 
     // ##########################
 
-    class Store {
-        constructor (reducer, initialState) {
-            this.reducer = reducer
-            this.state = reducer(initialState, { type: null })
-            this.listeners = []
-        }
-
-        getState () {
-            return this.state
-        }
-
-        subscribe (listener) {
-            this.listeners.push(listener)
-            return () => {
-                const index = this.listeners.indexOf(listener)
-                this.listeners.splice(index, 1)
-            }
-        }
-
-        dispatch (action) {
-            this.state = this.reducer(this.state, action)
-            this.listeners.forEach((listener) => listener())
-        }
-    }
-
-    // ##########################
-
-    function combineReducers(reducers) {
-        return (state = {}, action) => {
-            const result = {};
-            Object.entries(reducers).forEach(([key, reducer]) => {
-                result[key] = reducer(state[key], action)
-            })
-            return result
-        }
-    }
-
-    const store = new Store(combineReducers({
+    const store = Redux.createStore(Redux.combineReducers({
         clock: clockReducer,
         auction: auctionReducer
     }))
