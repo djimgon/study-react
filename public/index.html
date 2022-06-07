@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/redux@4/dist/redux.js" crossorigin></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.js" crossorigin></script>
     <script src="https://unpkg.com/ionicons@5/dist/ionicons/ionicons.esm.js" type="module" crossorigin></script>
 </head>
@@ -29,15 +30,13 @@
                                     id: 1,
                                     name: 'Apple',
                                     description: 'Apple description',
-                                    price: 16,
-                                    favorite: true
+                                    price: 16
                                 },
                                 {
                                     id: 2,
                                     name: 'Orange',
                                     description: 'Orange description',
-                                    price: 41,
-                                    favorite: false
+                                    price: 41
                                 }
                             ])
                         }, 1000)
@@ -79,18 +78,17 @@
             return this.state
         }
 
-        subscribe (callback) {
-            this.listeners.push(callback)
+        subscribe (listener) {
+            this.listeners.push(listener)
+            return () => {
+                const index = this.listeners.indexOf(listener)
+                this.listeners.splice(index, 1)
+            }
         }
 
-        changeState (diff) {
-            this.state = {
-                ...this.state,
-                ...(typeof diff === 'function' ? diff(this.state) : diff)
-            }
-            this.listeners.forEach((listener) => {
-                listener()
-            })
+        setState (state) {
+            this.state = (typeof state === 'function' ? state(this.state) : state)
+            this.listeners.forEach((listener) => listener())
         }
     }
 
@@ -149,24 +147,11 @@
 
     function Lot ({ lot }) {
         return (
-            <article className={'lot' + (lot.favorite ? ' favorite' : '')}>
+            <article className="lot">
                 <div className="price">{lot.price}</div>
                 <h1>{lot.name}</h1>
                 <p>{lot.description}</p>
-                <Favorite active={lot.favorite} />
             </article>
-        )
-    }
-
-    function Favorite ({ active }) {
-        return active ? (
-            <button type="button" className="unfavorite">
-                <ion-icon name="heart-sharp" /> Unfavorite
-            </button>
-        ) : (
-            <button type="button" className="favorite">
-                <ion-icon name="heart-outline" /> Favorite
-            </button>
         )
     }
 
@@ -187,33 +172,50 @@
 
     // ##########################
 
+    function appReducer (state, action, params) {
+        switch (action) {
+            case 'setTime':
+                return {
+                    ...state,
+                    time: params.time
+                }
+            case 'setLots':
+                return {
+                    ...state,
+                    lots: params.lots
+                }
+            case 'changeLotPrice':
+                return {
+                    ...state,
+                    lots: state.lots.map((lot) => {
+                        if (lot.id === params.id) {
+                            return {
+                                ...lot,
+                                price: params.price
+                            }
+                        }
+                        return lot
+                    })
+                }
+            default:
+                return state
+        }
+    }
+
     setInterval(() => {
-        store.changeState({
-            time: new Date()
-        })
+        store.setState((state) => appReducer(state, 'setTime', { time: new Date() }))
     }, 1000)
 
     api.get('/lots').then((lots) => {
-        store.changeState({
-            lots
-        })
-
-        const onPrice = (data) => {
-            store.changeState((state) => ({
-                lots: state.lots.map((lot) => {
-                    if (lot.id === data.id) {
-                        return {
-                            ...lot,
-                            price: data.price
-                        }
-                    }
-                    return lot
-                })
-            }))
-        }
+        store.setState((state) => appReducer(state, 'setLots', { lots }))
 
         lots.forEach((lot) => {
-            stream.subscribe(`price-${lot.id}`, onPrice)
+            stream.subscribe(`price-${lot.id}`, (data) => {
+                store.setState((state) => appReducer(state, 'changeLotPrice', {
+                    id: data.id,
+                    price: data.price
+                }))
+            })
         })
     })
 
