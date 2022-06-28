@@ -208,9 +208,15 @@
     }
 
     function Favorite ({ active }) {
-        return active
-            ? <button type="button">Unfavorite</button>
-            : <button type="button">Favorite</button>
+        return active ? (
+            <button type="button" className="unfavorite">
+                <ion-icon name="heart-sharp" /> Unfavorite
+            </button>
+        ) : (
+            <button type="button" className="favorite">
+                <ion-icon name="heart-outline" /> Favorite
+            </button>
+        )
     }
 
     // ##########################
