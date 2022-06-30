@@ -214,6 +214,28 @@
 
     // ##########################
 
+    function connect (mapStateToProps, mapDispatchToProps, WrappedComponent) {
+        return (props) => {
+            return (
+                <StoreContext.Consumer>
+                    {(store) => {
+                        const stateToProps = mapStateToProps ? mapStateToProps(store.getState()) : {}
+                        const dispatchToProps = mapDispatchToProps ? mapDispatchToProps(store.dispatch) : {}
+                        return (
+                            <WrappedComponent
+                                {...props}
+                                {...stateToProps}
+                                {...dispatchToProps}
+                            />
+                        )
+                    }}
+                </StoreContext.Consumer>
+            )
+        }
+    }
+
+    // ##########################
+
     function App () {
         return (
             <div className="app">
@@ -236,22 +258,6 @@
         return <img className="logo" src="logo.png" alt="" />
     }
 
-    function ClockConnected () {
-        return (
-            <StoreContext.Consumer>
-                {(store) => {
-                    const state = store.getState()
-
-                    const stateToProps = {
-                        time: state.clock.time
-                    }
-
-                    return <Clock {...stateToProps} />
-                }}
-            </StoreContext.Consumer>
-        )
-    }
-
     function Clock ({ time }) {
         const isDay = time.getHours() >= 7 && time.getHours() <= 21
 
@@ -263,24 +269,14 @@
         )
     }
 
+    const clockMapStateToProps = (state) => ({
+        time: state.clock.time
+    })
+
+    const ClockConnected = connect(clockMapStateToProps, null, Clock)
+
     function Loading () {
         return <div className="loading">Loading...</div>
-    }
-
-    function LotsConnected () {
-        return (
-            <StoreContext.Consumer>
-                {(store) => {
-                    const state = store.getState()
-
-                    const stateToProps = {
-                        lots: state.auction.lots
-                    }
-
-                    return <Lots {...stateToProps} />
-                }}
-            </StoreContext.Consumer>
-        )
     }
 
     function Lots ({ lots }) {
@@ -295,30 +291,11 @@
         )
     }
 
-    function LotConnected (props) {
-        return (
-            <StoreContext.Consumer>
-                {(store) => {
-                    const dispatch = store.dispatch
+    const lotsMapStateToProps = (state) => ({
+        lots: state.auction.lots
+    })
 
-                    const dispatchToProps = {
-                        favorite: (id) => {
-                            api.post(`/lots/${id}/favorite`).then(() => {
-                                dispatch(favoriteLot(id))
-                            })
-                        },
-                        unfavorite: (id) => {
-                            api.post(`/lots/${id}/unfavorite`).then(() => {
-                                dispatch(unfavoriteLot(id))
-                            })
-                        }
-                    }
-
-                    return <Lot {...props} {...dispatchToProps} />
-                }}
-            </StoreContext.Consumer>
-        )
-    }
+    const LotsConnected = connect(lotsMapStateToProps, null, Lots)
 
     function Lot ({ lot, favorite, unfavorite }) {
         return (
@@ -334,6 +311,21 @@
             </article>
         )
     }
+
+    const lotMapDispatchToProps = (dispatch) => ({
+        favorite: (id) => {
+            api.post(`/lots/${id}/favorite`).then(() => {
+                dispatch(favoriteLot(id))
+            })
+        },
+        unfavorite: (id) => {
+            api.post(`/lots/${id}/unfavorite`).then(() => {
+                dispatch(unfavoriteLot(id))
+            })
+        }
+    })
+
+    const LotConnected = connect(null, lotMapDispatchToProps, Lot)
 
     function Favorite ({ active, favorite, unfavorite }) {
         return active ? (
