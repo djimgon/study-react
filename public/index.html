@@ -71,12 +71,13 @@
         subscribe (channel, listener) {
             const match = /price-(\d+)/.exec(channel)
             if (match) {
-                setInterval(() => {
+                const interval = setInterval(() => {
                     listener({
                         id: parseInt(match[1]),
                         price: Math.round((Math.random() * 10 + 30))
                     })
                 }, 400)
+                return () => clearInterval(interval)
             }
         }
     }
@@ -286,7 +287,7 @@
 
     function Lot ({ lot, subscribe, favorite, unfavorite }) {
         React.useEffect(() => {
-            subscribe(lot.id)
+            return subscribe(lot.id)
         }, [lot.id])
 
         return (
@@ -306,7 +307,7 @@
     const lotMapDispatchToProps = {
         subscribe: (id) => {
             return (dispatch, getState, { stream }) => {
-                stream.subscribe(`price-${id}`, (data) => {
+                return stream.subscribe(`price-${id}`, (data) => {
                     dispatch(changeLotPrice(data.id, data.price))
                 })
             }
@@ -339,6 +340,7 @@
     )
 
     // ##########################
+
 </script>
 
 </body>
