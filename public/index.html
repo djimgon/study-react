@@ -24,24 +24,28 @@
         get (url) {
             switch (url) {
                 case '/lots':
-                    return new Promise((resolve) => {
+                    return new Promise((resolve, reject) => {
                         setTimeout(() => {
-                            resolve([
-                                {
-                                    id: 1,
-                                    name: 'Apple',
-                                    description: 'Apple description',
-                                    price: 16,
-                                    favorite: true
-                                },
-                                {
-                                    id: 2,
-                                    name: 'Orange',
-                                    description: 'Orange description',
-                                    price: 41,
-                                    favorite: false
-                                }
-                            ])
+                            if (Math.random() > 0.25) {
+                                resolve([
+                                    {
+                                        id: 1,
+                                        name: 'Apple',
+                                        description: 'Apple description',
+                                        price: 16,
+                                        favorite: true
+                                    },
+                                    {
+                                        id: 2,
+                                        name: 'Orange',
+                                        description: 'Orange description',
+                                        price: 41,
+                                        favorite: false
+                                    }
+                                ])
+                            } else {
+                                reject(new Error('Connection error'))
+                            }
                         }, 1000)
                     })
                 default:
@@ -85,20 +89,44 @@
     // ##########################
 
     const auctionInitialState = {
-        lots: null
+        lots: [],
+        loading: false,
+        loaded: false,
+        error: null
     }
 
-    const SET_LOTS = 'SET_LOTS'
+    const LOTS_LOADING_PENDING = 'LOTS_LOADING_PENDING'
+    const LOTS_LOADING_SUCCESS = 'LOTS_LOADING_SUCCESS'
+    const LOTS_LOADING_ERROR = 'LOTS_LOADING_ERROR'
     const CHANGE_LOT_PRICE = 'CHANGE_LOT_PRICE'
     const FAVORITE_LOT = 'FAVORITE_LOT'
     const UNFAVORITE_LOT = 'UNFAVORITE_LOT'
 
     function auctionReducer (state = auctionInitialState, action) {
         switch (action.type) {
-            case SET_LOTS:
+            case LOTS_LOADING_PENDING:
                 return {
                     ...state,
-                    lots: action.lots
+                    lots: [],
+                    loading: true,
+                    loaded: false,
+                    error: null
+                }
+            case LOTS_LOADING_SUCCESS:
+                return {
+                    ...state,
+                    lots: action.lots,
+                    loading: false,
+                    loaded: true,
+                    error: null
+                }
+            case LOTS_LOADING_ERROR:
+                return {
+                    ...state,
+                    lots: [],
+                    loading: false,
+                    loaded: false,
+                    error: action.error
                 }
             case CHANGE_LOT_PRICE:
                 return {
@@ -144,10 +172,32 @@
         }
     }
 
-    function setLots (lots) {
+    function lotsLoadingPending () {
         return {
-            type: SET_LOTS,
+            type: LOTS_LOADING_PENDING
+        }
+    }
+
+    function lotsLoadingSuccess (lots) {
+        return {
+            type: LOTS_LOADING_SUCCESS,
             lots
+        }
+    }
+
+    function lotsLoadingError (error) {
+        return {
+            type: LOTS_LOADING_ERROR,
+            error
+        }
+    }
+
+    function loadLotsAsync () {
+        return (dispatch, getState, { api }) => {
+            dispatch(lotsLoadingPending())
+            api.get('/lots')
+                .then((lots) => dispatch(lotsLoadingSuccess(lots)))
+                .catch((error) => dispatch(lotsLoadingError(error.message)))
         }
     }
 
@@ -156,6 +206,14 @@
             type: CHANGE_LOT_PRICE,
             id,
             price
+        }
+    }
+
+    function subscribeToLotPrice (id) {
+        return (dispatch, getState, { stream }) => {
+            return stream.subscribe(`price-${id}`, (data) => {
+                dispatch(changeLotPrice(data.id, data.price))
+            })
         }
     }
 
@@ -205,7 +263,7 @@
             <div className="app">
                 <Header />
                 <ClockContainer />
-                <LotsConnected />
+                <LotsContainerConnected />
             </div>
         )
     }
@@ -250,46 +308,71 @@
         return <div className="loading">Loading...</div>
     }
 
-    function Lots ({ lots, loaded, load }) {
+    function AlertError ({ message }) {
+        return <div className="error">{message}</div>
+    }
+
+    function LotsContainer ({ lots, loading, loaded, error, load }) {
         React.useEffect(() => {
-            if (!loaded) {
+            if (!loaded && !loading && error === null) {
                 load()
             }
-        }, [loaded])
+        }, [loaded, loading, error])
 
-        if (!loaded) {
+        if (error !== null) {
+            return <AlertError message={error} />
+        }
+
+        if (loading) {
             return <Loading />
         }
 
+        if (!loaded) {
+            return null
+        }
+
+        return <Lots lots={lots} />
+    }
+
+    const lotsContainerMapStateToProps = (state) => ({
+        lots: state.auction.lots,
+        loading: state.auction.loading,
+        loaded: state.auction.loaded,
+        error: state.auction.error
+    })
+
+    const lotsContainerMapDispatchToProps = {
+        load: loadLotsAsync
+    }
+
+    const LotsContainerConnected = ReactRedux.connect(
+        lotsContainerMapStateToProps,
+        lotsContainerMapDispatchToProps
+    )(LotsContainer)
+
+    function Lots ({ lots }) {
         return (
             <div className="lots">
-                {lots.map((lot) => <LotConnected lot={lot} key={lot.id} />)}
+                {lots.map((lot) => <LotContainerConnected lot={lot} key={lot.id} />)}
             </div>
         )
     }
 
-    const lotsMapStateToProps = (state) => ({
-        lots: state.auction.lots,
-        loaded: state.auction.lots !== null
-    })
-
-    const lotsMapDispatchToProps = {
-        load: () => {
-            return (dispatch, getState, { api }) => {
-                api.get('/lots').then((lots) => {
-                    dispatch(setLots(lots))
-                })
-            }
-        }
-    }
-
-    const LotsConnected = ReactRedux.connect(lotsMapStateToProps, lotsMapDispatchToProps)(Lots)
-
-    function Lot ({ lot, subscribe, favorite, unfavorite }) {
+    function LotContainer ({ lot, subscribe }) {
         React.useEffect(() => {
             return subscribe(lot.id)
         }, [lot.id])
 
+        return <LotConnected lot={lot} />
+    }
+
+    const lotContainerMapDispatchToProps = {
+        subscribe: subscribeToLotPrice
+    }
+
+    const LotContainerConnected = ReactRedux.connect(null, lotContainerMapDispatchToProps)(LotContainer)
+
+    function Lot ({ lot, favorite, unfavorite }) {
         return (
             <article className={'lot' + (lot.favorite ? ' favorite' : '')}>
                 <div className="price">{lot.price}</div>
@@ -305,13 +388,6 @@
     }
 
     const lotMapDispatchToProps = {
-        subscribe: (id) => {
-            return (dispatch, getState, { stream }) => {
-                return stream.subscribe(`price-${id}`, (data) => {
-                    dispatch(changeLotPrice(data.id, data.price))
-                })
-            }
-        },
         favorite: favoriteLotAsync,
         unfavorite: unfavoriteLotAsync
     }
@@ -340,7 +416,6 @@
     )
 
     // ##########################
-
 </script>
 
 </body>
