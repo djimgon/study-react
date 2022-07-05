@@ -285,11 +285,23 @@
         </RouterContext.Consumer>
     }
 
+    function matchPath (location, path) {
+        const regexp = new RegExp('^' + path + '$')
+        return regexp.exec(location)
+    }
+
     function Route ({ path, children }) {
         return <RouterContext.Consumer>
             {(value) => {
-                if (value.location === path) {
-                    return children
+                const match = matchPath(value.location, path)
+                if (match) {
+                    return <RouterContext.Provider
+                        value={{
+                            ...value,
+                            match
+                        }}
+                        children={children}
+                    />
                 }
                 return null
             }}
@@ -343,6 +355,9 @@
                 <Route path="/lots">
                     <LotsPage />
                 </Route>
+                <Route path="/lots/(?<id>[\w-]+)">
+                    <LotPage />
+                </Route>
                 <Route path="/help">
                     <HelpPage />
                 </Route>
@@ -388,6 +403,16 @@
                 <ClockContainer />
                 <LotsContainerConnected />
             </>
+        )
+    }
+
+    function LotPage () {
+        const router = React.useContext(RouterContext)
+        return (
+            <Page>
+                <h1>Lot #{router.match.groups.id}</h1>
+                <p>Lot description</p>
+            </Page>
         )
     }
 
@@ -487,7 +512,9 @@
         return (
             <article className={'lot' + (lot.favorite ? ' favorite' : '')}>
                 <div className="price">{lot.price}</div>
-                <h1>{lot.name}</h1>
+                <h1>
+                    <Link to={'/lots/' + lot.id}>{lot.name}</Link>
+                </h1>
                 <p>{lot.description}</p>
                 <Favorite
                     active={lot.favorite}
